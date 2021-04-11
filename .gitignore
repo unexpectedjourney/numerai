@@ -3,6 +3,8 @@
 .DS_Store
 data/
 submissions/
+states/
+assets/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

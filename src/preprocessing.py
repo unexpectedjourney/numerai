@@ -9,6 +9,14 @@ def preprocessing(train_df, test_df, funcs):
     return train_df, test_df
 
 
+def get_preproc_functions():
+    return [
+        get_validation_data,
+        drop_columns,
+        clear_era_records,
+    ]
+
+
 def get_validation_data(train_df, test_df):
     test_df = test_df[test_df.data_type == "validation"]
     return train_df, test_df
@@ -25,5 +33,4 @@ def clear_era_records(train_df, test_df):
     train_df.era = train_df.era.apply(clear_era)
     test_df.era = test_df.era.apply(clear_era)
     train_df = train_df.sort_values("era")
-    print(train_df.era.head())
     return train_df, test_df

@@ -23,11 +23,12 @@ models = {
 
 
 class BaseModel:
-    def __init__(self, model_name):
+    def __init__(self, model_name, model_params):
         self.model = None
         self.model_class = self.get_model(model_name)
-        self.apply_hyper_params()
-        self.params = self.get_params()
+        self.params = model_params
+        self.model = self.apply_hyper_params(self.model_class, self.params)
+        self.tune_params = self.get_tune_params()
         self.model_list = []
 
     @staticmethod
@@ -35,14 +36,10 @@ class BaseModel:
         return models.get(model_name)
 
     @staticmethod
-    def get_params():
-        return {}
-
-    def apply_hyper_params(self, params=None):
+    def apply_hyper_params(model_class, params=None):
         if params is not None and isinstance(params, dict):
-            self.model = self.model_class(**params)
-        else:
-            self.model = self.model_class()
+            return model_class(**params)
+        return model_class()
 
     def train(self, train_df, kfolds, metric):
         val_scores, self.model_list = cross_validate(
@@ -109,7 +106,7 @@ class BoostingMixing:
         # todo specify whether we need fmin or not
         result = fmin(
             fn=try_hyperparameters,
-            space=self.params,
+            space=self.tune_params,
             trials=Trials(),
             algo=tpe.suggest,
             max_evals=N_ITERS,
@@ -122,7 +119,7 @@ class SklearnModelMixing:
     def find_hyperparameters(self, train_df, target, kfolds, metric):
         splits = kfolds.split()
         search = RandomizedSearchCV(
-            self.model, self.params, cv=splits, scoring=metric,
+            self.model, self.tune_params, cv=splits, scoring=metric,
             return_train_score=True, verbose=True, n_jobs=-1, n_iter=N_ITERS
         )
 
@@ -132,7 +129,7 @@ class SklearnModelMixing:
 
 class XGBoostModel(BaseModel, BoostingMixing):
     @staticmethod
-    def get_params():
+    def get_tune_params():
         return {
             'max_depth': hp.choice('max_depth', range(5, 30, 1)),
             'learning_rate': hp.quniform('learning_rate', 0.01, 0.5, 0.01),
@@ -146,34 +143,39 @@ class XGBoostModel(BaseModel, BoostingMixing):
 
 class LogRegModel(BaseModel, SklearnModelMixing):
     @staticmethod
-    def get_params():
+    def get_tune_params():
         return {}
 
 
 class RFModel(BaseModel, SklearnModelMixing):
     @staticmethod
-    def get_params():
+    def get_tune_params():
         return {}
 
 
 class LSVCModel(BaseModel, SklearnModelMixing):
     @staticmethod
-    def get_params():
+    def get_tune_params():
         return {}
 
 
 class GaussianNBModel(BaseModel, SklearnModelMixing):
     @staticmethod
-    def get_params():
+    def get_tune_params():
         return {}
 
 
-class RidgeNBModel(BaseModel, SklearnModelMixing):
+class RidgeModel(BaseModel, SklearnModelMixing):
     @staticmethod
-    def get_params():
+    def get_tune_params():
         return {}
 
 
 full_models = {
     "xgboost": XGBoostModel,
+    "logreg": LogRegModel,
+    "random_forest": RFModel,
+    "linear_svc": LSVCModel,
+    "gaussian_nb": GaussianNBModel,
+    "ridge": RidgeModel,
 }

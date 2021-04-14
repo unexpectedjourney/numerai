@@ -1,15 +1,22 @@
+import datetime
+
 import pandas as pd
 from sklearn.model_selection import TimeSeriesSplit
 
-from src.metrics import numerai_score
+from src.metrics import numerai_score, cross_entropy_loss
 from src.model import XGBoostModel, full_models
 from src.preprocessing import get_preproc_functions, preprocessing
 
 
 class Trainer:
-    def __init__(self, train_file, test_file, submissions_path, model_name, model_params):
-        self.train_df = pd.read_csv(train_file, nrows=1000)
-        self.test_df = pd.read_csv(test_file, nrows=1000)
+    def __init__(self, train_file, test_file, submissions_path, model_name,
+                 model_params):
+        # self.train_df = pd.read_csv(train_file, nrows=1000)
+        # self.test_df = pd.read_csv(test_file, nrows=1000)
+        self.train_df = pd.read_csv(train_file)
+        self.test_df = pd.read_csv(test_file)
+
+        self.submission_df = self.test_df.copy()[["id"]]
         self.preproc_funcs = get_preproc_functions()
 
         self.kfold = TimeSeriesSplit(n_splits=5)
@@ -32,7 +39,18 @@ class Trainer:
         self.model.train(self.train_df, self.kfold, numerai_score)
 
     def find_hyperparameters(self):
-        self.model.find_hyperparameters(self.train_df, self.kfold, numerai_score)
+        self.model.find_hyperparameters(self.train_df, self.kfold,
+                                        numerai_score)
 
     def evaluate(self):
-        self.model.predict_and_score(self.train_df, self.kfold, self.test_df, "target", numerai_score)
+        predictions = self.model.predict_and_score(
+            self.train_df,
+            self.kfold,
+            self.test_df,
+            "target",
+            numerai_score
+        )
+        self.submission_df["target"] = predictions
+        self.submission_df[["id", "target"]].to_csv(
+            self.submissions_path / f"{self.model_name}-{int(datetime.datetime.now().timestamp())}.csv",
+            index=False)

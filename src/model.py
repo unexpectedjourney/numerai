@@ -49,6 +49,7 @@ class BaseModel:
             metric,
             return_models=True
         )
+        print(f"Val scores: {val_scores}")
         return self
 
     def predict(self, test_df, target):
@@ -83,10 +84,10 @@ class BaseModel:
         )
         predictions = stats.mode(np.array(predictions))[0][0]
 
-        print(f"{metric.__name__}, {metric(y_data, predictions)}")
+        print(f"{metric.__name__}: {metric(y_data, predictions)}")
         for additional_metric in additional_metrics:
             print(
-                f"{additional_metric.__name__}, {additional_metric(y_data, predictions)}")
+                f"{additional_metric.__name__}: {additional_metric(y_data, predictions)}")
 
         return predictions
 
@@ -95,7 +96,7 @@ class BoostingMixing:
     def find_hyperparameters(self, train_df, kfolds, metric):
         def try_hyperparameters(params):
             model = self.model_class(**params)
-            return cross_validate(
+            return -1 * cross_validate(
                 model,
                 train_df.copy(),
                 kfolds,

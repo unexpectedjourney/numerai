@@ -7,6 +7,10 @@ import yaml
 from src.trainer import Trainer
 from src.utils import set_seed
 
+import warnings
+
+warnings.filterwarnings("ignore")
+
 
 def load_config(config_path):
     with open(config_path) as file:

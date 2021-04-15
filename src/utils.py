@@ -77,3 +77,11 @@ def generate_model_name(model, model_name=None):
 def clear_era(era):
     era = era.replace("era", "").strip()
     return int(era)
+
+
+def prepare_wrap_metric(metric):
+    def wrap_metric(model, x, y):
+        y_pred = model.predict(x)
+        return metric(y, y_pred)
+
+    return wrap_metric

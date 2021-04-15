@@ -8,6 +8,7 @@ from sklearn.svm import LinearSVR, SVR
 from xgboost import XGBRegressor
 
 from src.train import cross_validate
+from src.utils import prepare_wrap_metric
 
 N_ITERS = 40
 models = {
@@ -118,7 +119,8 @@ class BoostingMixing:
 
 class SklearnModelMixing:
     def find_hyperparameters(self, train_df, kfolds, metric, target=None):
-        splits = kfolds.split()
+        metric = prepare_wrap_metric(metric)
+        splits = kfolds.split(train_df)
         search = RandomizedSearchCV(
             self.model, self.tune_params, cv=splits, scoring=metric,
             return_train_score=True, verbose=True, n_jobs=-1, n_iter=N_ITERS

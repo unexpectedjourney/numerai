@@ -1,24 +1,23 @@
-from hyperopt import Trials, tpe, fmin
-from scipy.stats import stats
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import LogisticRegression, RidgeClassifier
-from sklearn.model_selection import RandomizedSearchCV
-from sklearn.naive_bayes import GaussianNB
-from sklearn.svm import LinearSVC
-from xgboost import XGBClassifier
 import numpy as np
+from hyperopt import Trials, tpe, fmin
 from hyperopt import hp
+from scipy.stats import stats
+from sklearn.linear_model import LinearRegression, Lasso, Ridge, ElasticNet
+from sklearn.model_selection import RandomizedSearchCV
+from sklearn.svm import LinearSVR, SVR
+from xgboost import XGBRegressor
 
 from src.train import cross_validate
 
-N_ITERS = 20
+N_ITERS = 40
 models = {
-    "xgboost": XGBClassifier,
-    "logreg": LogisticRegression,
-    "random_forest": RandomForestClassifier,
-    "linear_svc": LinearSVC,
-    "gaussian_nb": GaussianNB,
-    "ridge": RidgeClassifier,
+    "xgboost": XGBRegressor,
+    "lr": LinearRegression,
+    "e_net": ElasticNet,
+    "lasso": Lasso,
+    "ridge": Ridge,
+    "l_svr": LinearSVR,
+    "svr": SVR
 }
 
 
@@ -93,8 +92,10 @@ class BaseModel:
 
 
 class BoostingMixing:
-    def find_hyperparameters(self, train_df, kfolds, metric):
+    def find_hyperparameters(self, train_df, kfolds, metric, target=None):
         def try_hyperparameters(params):
+            params['gpu_id'] = 0
+            params['tree_method'] = 'gpu_hist'
             model = self.model_class(**params)
             return -1 * cross_validate(
                 model,
@@ -104,7 +105,6 @@ class BoostingMixing:
                 test_df=None,
             )
 
-        # todo specify whether we need fmin or not
         result = fmin(
             fn=try_hyperparameters,
             space=self.tune_params,
@@ -117,7 +117,7 @@ class BoostingMixing:
 
 
 class SklearnModelMixing:
-    def find_hyperparameters(self, train_df, target, kfolds, metric):
+    def find_hyperparameters(self, train_df, kfolds, metric, target=None):
         splits = kfolds.split()
         search = RandomizedSearchCV(
             self.model, self.tune_params, cv=splits, scoring=metric,
@@ -132,51 +132,71 @@ class XGBoostModel(BaseModel, BoostingMixing):
     @staticmethod
     def get_tune_params():
         return {
-            'max_depth': hp.choice('max_depth', range(5, 30, 1)),
-            'learning_rate': hp.quniform('learning_rate', 0.01, 0.5, 0.01),
-            'n_estimators': hp.choice('n_estimators', range(20, 205, 5)),
+            'max_depth': hp.choice('max_depth', range(2, 20, 1)),
+            'learning_rate': hp.quniform('learning_rate', 0.001, 0.5, 0.01),
+            'n_estimators': hp.choice('n_estimators', range(100, 1000, 5)),
             'gamma': hp.quniform('gamma', 0, 0.50, 0.01),
-            'min_child_weight': hp.quniform('min_child_weight', 1, 10, 1),
-            'subsample': hp.quniform('subsample', 0.1, 1, 0.01),
-            'colsample_bytree': hp.quniform('colsample_bytree', 0.1, 1.0, 0.01)
+            'alpha': hp.uniform('alpha', 0, 80),
+            'lambda': hp.uniform('lambda', 0, 10)
         }
 
 
-class LogRegModel(BaseModel, SklearnModelMixing):
+class LRModel(BaseModel, SklearnModelMixing):
     @staticmethod
     def get_tune_params():
         return {}
 
 
-class RFModel(BaseModel, SklearnModelMixing):
+class ENetModel(BaseModel, SklearnModelMixing):
     @staticmethod
     def get_tune_params():
-        return {}
+        return {
+            'alpha': np.arange(1e-4, 1e-3, 1e-4),
+            'l1_ratio': np.arange(0.1, 1.0, 0.1),
+            'max_iter': [1000]
+        }
 
 
-class LSVCModel(BaseModel, SklearnModelMixing):
+class LassoModel(BaseModel, SklearnModelMixing):
     @staticmethod
     def get_tune_params():
-        return {}
-
-
-class GaussianNBModel(BaseModel, SklearnModelMixing):
-    @staticmethod
-    def get_tune_params():
-        return {}
+        return {
+            'alpha': np.logspace(-4, -0.5, 30)
+        }
 
 
 class RidgeModel(BaseModel, SklearnModelMixing):
     @staticmethod
     def get_tune_params():
-        return {}
+        return {
+            'alpha': np.logspace(-4, -0.5, 30)
+        }
+
+
+class LSVRModel(BaseModel, SklearnModelMixing):
+    @staticmethod
+    def get_tune_params():
+        return {
+            'C': [0.1, 1, 10, 100, 1000],
+        }
+
+
+class SVRModel(BaseModel, SklearnModelMixing):
+    @staticmethod
+    def get_tune_params():
+        return {
+            'C': [0.1, 1, 10, 100, 1000],
+            'gamma': [1, 0.1, 0.01, 0.001, 0.0001],
+            'kernel': ['rbf']
+        }
 
 
 full_models = {
     "xgboost": XGBoostModel,
-    "logreg": LogRegModel,
-    "random_forest": RFModel,
-    "linear_svc": LSVCModel,
-    "gaussian_nb": GaussianNBModel,
+    "lr": LRModel,
+    "e_net": ENetModel,
+    "lasso": LassoModel,
     "ridge": RidgeModel,
+    "l_svr": LSVRModel,
+    "svr": SVRModel
 }

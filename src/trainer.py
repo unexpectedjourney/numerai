@@ -39,8 +39,12 @@ class Trainer:
         self.model.train(self.train_df, self.kfold, numerai_score)
 
     def find_hyperparameters(self):
-        self.model.find_hyperparameters(self.train_df, self.kfold,
-                                        numerai_score)
+        self.model.find_hyperparameters(
+            self.train_df,
+            self.kfold,
+            numerai_score,
+            target="target",
+        )
 
     def evaluate(self):
         predictions = self.model.predict_and_score(

@@ -1,4 +1,11 @@
 seed: 42
-model_name: "xgboost"
+#model_name: "xgboost"
+#model_name: "lgboost"
+model_name: "catboost"
+#model_name: "lr"
+#model_name: "e_net"
+#model_name: "lasso"
+#model_name: "ridge"
+#model_name: "l_svr"
+#model_name: "svr"
 #model_params:
-#

@@ -1,6 +1,8 @@
 import numpy as np
+from catboost import CatBoostRegressor
 from hyperopt import Trials, tpe, fmin
 from hyperopt import hp
+from lightgbm import LGBMRegressor
 from scipy.stats import stats
 from sklearn.linear_model import LinearRegression, Lasso, Ridge, ElasticNet
 from sklearn.model_selection import RandomizedSearchCV
@@ -13,6 +15,8 @@ from src.utils import prepare_wrap_metric
 N_ITERS = 40
 models = {
     "xgboost": XGBRegressor,
+    "lgboost": LGBMRegressor,
+    "catboost": CatBoostRegressor,
     "lr": LinearRegression,
     "e_net": ElasticNet,
     "lasso": Lasso,
@@ -47,7 +51,8 @@ class BaseModel:
             train_df,
             kfolds,
             metric,
-            return_models=True
+            return_models=True,
+            copy_model=True
         )
         print(f"Val scores: {val_scores}")
         return self
@@ -81,6 +86,7 @@ class BaseModel:
             kfolds,
             metric,
             test_df=test_df,
+            copy_model=True
         )
         predictions = stats.mode(np.array(predictions))[0][0]
 
@@ -95,8 +101,6 @@ class BaseModel:
 class BoostingMixing:
     def find_hyperparameters(self, train_df, kfolds, metric, target=None):
         def try_hyperparameters(params):
-            params['gpu_id'] = 0
-            params['tree_method'] = 'gpu_hist'
             model = self.model_class(**params)
             return -1 * cross_validate(
                 model,
@@ -104,6 +108,7 @@ class BoostingMixing:
                 kfolds,
                 metric,
                 test_df=None,
+                copy_model=True
             )
 
         result = fmin(
@@ -134,12 +139,59 @@ class XGBoostModel(BaseModel, BoostingMixing):
     @staticmethod
     def get_tune_params():
         return {
+            'gpu_id': 0,
+            'tree_method': 'gpu_hist',
             'max_depth': hp.choice('max_depth', range(2, 20, 1)),
             'learning_rate': hp.quniform('learning_rate', 0.001, 0.5, 0.01),
             'n_estimators': hp.choice('n_estimators', range(100, 1000, 5)),
             'gamma': hp.quniform('gamma', 0, 0.50, 0.01),
             'alpha': hp.uniform('alpha', 0, 80),
             'lambda': hp.uniform('lambda', 0, 10)
+        }
+
+
+class LGBoostModel(BaseModel, BoostingMixing):
+    @staticmethod
+    def get_tune_params():
+        return {
+            # 'device': 'gpu',
+            # 'gpu_platform_id': 0,
+            # # 'gpu_device_id': 0,
+            'boosting_type': hp.choice('boosting_type',
+                                       ['dart', 'gbdt', 'goss']),
+            'learning_rate': hp.choice('learning_rate',
+                                       np.arange(0.005, 0.1005, 0.005)),
+            'n_estimators': hp.choice('n_estimators',
+                                      np.arange(100, 4001, 25, dtype=int)),
+            'max_depth': hp.choice('max_depth',
+                                   np.arange(5, 70, 2, dtype=int)),
+            'num_leaves': hp.choice('num_leaves',
+                                    [3, 5, 7, 15, 31, 50, 75, 100]),
+            'feature_fraction': hp.uniform('feature_fraction', 0, 1),
+            'subsample': hp.uniform('subsample', 0.5, 1.),
+            'lambda_l1': hp.loguniform('lambda_l1', -3, 2),
+            'lambda_l2': hp.loguniform('lambda_l2', -3, 2),
+        }
+
+
+class CatBoostModel(BaseModel, BoostingMixing):
+    @staticmethod
+    def get_tune_params():
+        return {
+            'depth': hp.quniform('depth', 2, 70, 1),
+            'max_bin': hp.quniform('max_bin', 1, 32, 1),
+            'l2_leaf_reg': hp.uniform('l2_leaf_reg', 0, 5),
+            'min_data_in_leaf': hp.quniform('min_data_in_leaf', 1, 50, 1),
+            'random_strength': hp.loguniform('random_strength', np.log(0.005),
+                                             np.log(5)),
+            'learning_rate': hp.uniform('learning_rate', 0.05, 0.25),
+            'fold_len_multiplier': hp.loguniform('fold_len_multiplier',
+                                                 np.log(1.01), np.log(2.5)),
+            'od_type': 'Iter',
+            'od_wait': 25,
+            'task_type': 'GPU',
+            'devices': '0:1',
+            'verbose': 0
         }
 
 
@@ -195,6 +247,8 @@ class SVRModel(BaseModel, SklearnModelMixing):
 
 full_models = {
     "xgboost": XGBoostModel,
+    "lgboost": LGBoostModel,
+    "catboost": CatBoostModel,
     "lr": LRModel,
     "e_net": ENetModel,
     "lasso": LassoModel,

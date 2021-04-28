@@ -1,11 +1,21 @@
 seed: 42
-#model_name: "xgboost"
-#model_name: "lgboost"
-model_name: "catboost"
+# model_name: "xgboost"
+# model_params:
+#   alpha: 20.960678234456573
+#   gamma: 0
+#   gpu_id: 0
+#   lambda: 5.332233381013205
+#   learning_rate: 0.01
+#   max_depth: 8
+#   n_estimators: 905
+#   tree_method: gpu_hist
+
+model_name: "lgboost"
+#model_name: "catboost"
 #model_name: "lr"
 #model_name: "e_net"
 #model_name: "lasso"
 #model_name: "ridge"
 #model_name: "l_svr"
 #model_name: "svr"
-#model_params:
+

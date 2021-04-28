@@ -4,7 +4,7 @@ from sklearn.base import clone
 from sklearn.model_selection import GroupKFold, StratifiedKFold
 from sklearn.preprocessing import KBinsDiscretizer
 
-from src.preprocessing import preprocessing
+from src.preprocessing import preprocessing, drop_columns
 from src.utils import (
     generate_model_name, unzip_dataframes,
     visualize_losses, zip_dataframes)
@@ -40,6 +40,7 @@ def cross_validate(
     loss_sample_dict = {}
 
     model_name = generate_model_name(model, model_name)
+    train_df, test_df = drop_columns(train_df, test_df)
 
     if isinstance(kfold, GroupKFold):
         splits = kfold.split(train_df, groups=kwargs["groups"])
@@ -79,7 +80,7 @@ def cross_validate(
 
         if return_val_preds or viz_losses:
             val_preds.iloc[
-                val_df.index, val_preds.columns.get_loc('price')
+                val_df.index, val_preds.columns.get_loc(target)
             ] = preds
 
         fold_score = metric(y_val, preds)
@@ -88,8 +89,9 @@ def cross_validate(
         print(f"fold {idx+1} score: {fold_score}")
 
         if test_df is not None:
-            x_test = test_df.drop(columns=target).values
-            test_fold_preds = instance.predict(x_test)
+            if target in test_df.columns:
+                test_df = test_df.drop(target, axis=1)
+            test_fold_preds = instance.predict(test_df)
             test_preds.append(test_fold_preds)
 
     print(f"mean score: {np.mean(val_scores)}")

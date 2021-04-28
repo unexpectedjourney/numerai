@@ -9,8 +9,9 @@ from sklearn.model_selection import RandomizedSearchCV
 from sklearn.svm import LinearSVR, SVR
 from xgboost import XGBRegressor
 
-from src.train import cross_validate
-from src.utils import prepare_wrap_metric
+from src.train_method import cross_validate
+from src.utils import prepare_wrap_metric, create_era_correlation, plot_era_corr
+from src.metrics import spearmanr
 
 N_ITERS = 40
 models = {
@@ -45,34 +46,51 @@ class BaseModel:
             return model_class(**params)
         return model_class()
 
-    def train(self, train_df, kfolds, metric):
-        val_scores, self.model_list = cross_validate(
+    def train(self, train_df, kfolds, metric, era_metrics=None, plot_eras=True):
+        if era_metrics is None:
+            era_metrics = []
+
+        val_scores, self.model_list, val_preds = cross_validate(
             self.model,
             train_df,
             kfolds,
             metric,
             return_models=True,
+            return_val_preds=True,
             copy_model=True
         )
-        print(f"Val scores: {val_scores}")
+
+        era_scores = create_era_correlation(
+            train_df.target.tolist(),
+            val_preds.target.tolist(),
+            train_df.era.tolist(),
+            spearmanr
+        )
+        if plot_eras:
+            plot_era_corr(era_scores, self.model)
+
+        for era_metric in era_metrics:
+            print(
+                f"{era_metric.__name__}: {era_metric(era_scores)}")
+
+
         return self
 
-    def predict(self, test_df, target):
-        assert len(self.model_list), "Train first"
+    def predict(self, train_df, kfolds, test_df, target, metric):
+        val_scores, predictions = cross_validate(
+            self.model,
+            train_df,
+            kfolds,
+            metric,
+            test_df=test_df,
+            copy_model=True
+        )
+        predictions = stats.mode(np.array(predictions))[0][0]
 
-        if target in test_df.columns:
-            test_df = test_df.drop(target, axis=1)
-        x_data = test_df.values
-
-        predictions = np.column_stack(
-            [
-                model.predict(x_data) for model in self.model_list
-            ]
-        ).mean(axis=1)
         return predictions
 
     def predict_and_score(self, train_df, kfolds, test_df, target, metric,
-                          additional_metrics=None):
+                          additional_metrics=None, era_metrics=None):
         if additional_metrics is None:
             additional_metrics = []
 
@@ -154,9 +172,7 @@ class LGBoostModel(BaseModel, BoostingMixing):
     @staticmethod
     def get_tune_params():
         return {
-            # 'device': 'gpu',
-            # 'gpu_platform_id': 0,
-            # # 'gpu_device_id': 0,
+            'device': 'gpu',
             'boosting_type': hp.choice('boosting_type',
                                        ['dart', 'gbdt', 'goss']),
             'learning_rate': hp.choice('learning_rate',
@@ -178,7 +194,7 @@ class CatBoostModel(BaseModel, BoostingMixing):
     @staticmethod
     def get_tune_params():
         return {
-            'depth': hp.quniform('depth', 2, 70, 1),
+            'depth': hp.quniform('depth', 2, 16, 1),
             'max_bin': hp.quniform('max_bin', 1, 32, 1),
             'l2_leaf_reg': hp.uniform('l2_leaf_reg', 0, 5),
             'min_data_in_leaf': hp.quniform('min_data_in_leaf', 1, 50, 1),

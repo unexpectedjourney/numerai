@@ -1,6 +1,8 @@
 import numpy as np
+import pandas as pd
 from scipy.stats import rankdata
-from sklearn.metrics import log_loss
+from scipy.stats import skew, kurtosis
+
 
 
 def spearmanr(target, pred):
@@ -8,6 +10,12 @@ def spearmanr(target, pred):
 
 
 def numerai_score(y_true, y_pred):
+    df = pd.DataFrame({"y_true": y_true, "y_pred": y_pred})
+    df = df.dropna()
+
+    y_true = df.y_true.tolist()
+    y_pred = df.y_pred.tolist()
+
     rank_pred = rankdata(y_pred)
     return np.corrcoef(y_true, rank_pred)[0, 1]
 
@@ -36,3 +44,9 @@ def smart_sharpe(x):
 def numerai_sharpe(x):
     x = x.dropna()
     return ((np.mean(x) - 0.010415154) / np.std(x)) * np.sqrt(12)
+
+
+def adj_sharpe(x):
+    x = x.dropna()
+    return numerai_sharpe(x) * (1 + ((skew(x) / 6) * numerai_sharpe(x)) - ((kurtosis(x) - 3) / 24) * (numerai_sharpe(x) ** 2))
+

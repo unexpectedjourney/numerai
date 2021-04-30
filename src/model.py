@@ -10,8 +10,9 @@ from sklearn.svm import LinearSVR, SVR
 from xgboost import XGBRegressor
 
 from src.train_method import cross_validate
-from src.utils import prepare_wrap_metric, create_era_correlation, plot_era_corr
-from src.metrics import spearmanr
+from src.utils import (
+    prepare_wrap_metric, create_era_correlation, plot_era_corr)
+from src.metrics import spearmanr, smart_sharpe
 
 N_ITERS = 40
 models = {
@@ -46,7 +47,7 @@ class BaseModel:
             return model_class(**params)
         return model_class()
 
-    def train(self, train_df, kfolds, metric, era_metrics=None, plot_eras=True):
+    def train(self, train_df, kfolds, metric, era_metrics=None, plot_eras=False):
         if era_metrics is None:
             era_metrics = []
 
@@ -90,9 +91,12 @@ class BaseModel:
         return predictions
 
     def predict_and_score(self, train_df, kfolds, test_df, target, metric,
-                          additional_metrics=None, era_metrics=None):
+                          additional_metrics=None, era_metrics=None, plot_eras=True):
         if additional_metrics is None:
             additional_metrics = []
+
+        if era_metrics is None:
+            era_metrics = []
 
         assert target in test_df.columns, "Please specify target in test_df"
 
@@ -113,6 +117,20 @@ class BaseModel:
             print(
                 f"{additional_metric.__name__}: {additional_metric(y_data, predictions)}")
 
+        era_scores = create_era_correlation(
+            test_df.target.tolist(),
+            predictions,
+            test_df.era.tolist(),
+            spearmanr
+        )
+
+        if plot_eras:
+            plot_era_corr(era_scores, self.model)
+
+        for era_metric in era_metrics:
+            print(
+                f"{era_metric.__name__}: {era_metric(era_scores)}")
+
         return predictions
 
 
@@ -120,14 +138,25 @@ class BoostingMixing:
     def find_hyperparameters(self, train_df, kfolds, metric, target=None):
         def try_hyperparameters(params):
             model = self.model_class(**params)
-            return -1 * cross_validate(
+            val_scores, predictions = cross_validate(
                 model,
                 train_df.copy(),
                 kfolds,
                 metric,
                 test_df=None,
-                copy_model=True
+                copy_model=True,
+                return_val_preds=True,
             )
+
+            # era_scores = create_era_correlation(
+            #     train_df.target.tolist(),
+            #     predictions.target.tolist(),
+            #     train_df.era.tolist(),
+            #     spearmanr
+            # )
+            # score = smart_sharpe(era_scores)
+            # return -score
+            return -1 * val_score
 
         result = fmin(
             fn=try_hyperparameters,

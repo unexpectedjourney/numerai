@@ -18,7 +18,7 @@ def get_validation_data(train_df, test_df):
 def drop_columns(train_df, test_df=None):
     columns = ['id', 'data_type', 'era']
     train_df = train_df.drop(columns=columns, axis=1)
-    if test_df:
+    if test_df is not None and not test_df.empty:
         test_df = test_df.drop(columns=columns, axis=1)
     return train_df, test_df
 

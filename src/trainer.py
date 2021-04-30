@@ -36,7 +36,10 @@ class Trainer:
 
         self.model = self.get_model(model_name, model_params)
         self.era_metrics = [
-            autocorr_penalty, smart_sharpe, numerai_sharpe
+            autocorr_penalty,
+            smart_sharpe,
+            numerai_sharpe,
+            adj_sharpe
         ]
 
     @staticmethod
@@ -58,7 +61,8 @@ class Trainer:
     def evaluate(self):
         predictions = self.model.predict_and_score(self.train_df, self.kfold,
                                                    self.test_df, "target",
-                                                   numerai_score)
+                                                   numerai_score,
+                                                   era_metrics=self.era_metrics)
         self.submission_df["prediction"] = predictions
         self.submission_df[["id", "prediction"]].to_csv(
             self.submissions_path /

@@ -8,6 +8,7 @@ from src.preprocessing import preprocessing, drop_columns
 from src.utils import (
     generate_model_name, unzip_dataframes,
     visualize_losses, zip_dataframes)
+from src.split import TimeSeriesSplitGroups
 
 
 def cross_validate(
@@ -40,7 +41,6 @@ def cross_validate(
     loss_sample_dict = {}
 
     model_name = generate_model_name(model, model_name)
-    train_df, test_df = drop_columns(train_df, test_df)
 
     if isinstance(kfold, GroupKFold):
         splits = kfold.split(train_df, groups=kwargs["groups"])
@@ -50,8 +50,13 @@ def cross_validate(
             n_bins=50, encode='ordinal', strategy='quantile')
         stratify_on = est.fit_transform(target_values).T[0]
         splits = kfold.split(train_df, stratify_on)
+    elif isinstance(kfold, TimeSeriesSplitGroups):
+        eras = train_df.era
+        splits = kfold.split(train_df, groups=eras)
     else:
         splits = kfold.split(train_df)
+
+    train_df, test_df = drop_columns(train_df, test_df)
 
     for idx, (train_idx, val_idx) in enumerate(splits):
         tr_df = train_df.iloc[train_idx]

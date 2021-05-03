@@ -4,12 +4,13 @@ import pandas as pd
 from sklearn.model_selection import TimeSeriesSplit
 
 from src.metrics import (
-    numerai_score, autocorr_penalty, smart_sharpe, numerai_sharpe)
+    numerai_score, autocorr_penalty, smart_sharpe, numerai_sharpe, adj_sharpe)
 from src.model import XGBoostModel, full_models
 from src.preprocessing import (
     preprocessing,
     clear_era_records,
 )
+from src.split import TimeSeriesSplitGroups
 
 
 class Trainer:
@@ -25,7 +26,8 @@ class Trainer:
             clear_era_records,
         ]
 
-        self.kfold = TimeSeriesSplit(n_splits=5)
+        # self.kfold = TimeSeriesSplit(n_splits=5)
+        self.kfold = TimeSeriesSplitGroups(n_splits=5)
         self.train_df, self.test_df = preprocessing(self.train_df,
                                                     self.test_df,
                                                     preproc_funcs)

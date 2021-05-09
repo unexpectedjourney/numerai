@@ -88,7 +88,7 @@ def cross_validate(
                 val_df.index, val_preds.columns.get_loc(target)
             ] = preds
 
-        fold_score = metric(y_val, preds)
+        fold_score = metric(y_val, preds, x_val)
         val_scores.append(fold_score)
 
         print(f"fold {idx+1} score: {fold_score}")

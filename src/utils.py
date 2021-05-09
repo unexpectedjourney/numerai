@@ -82,7 +82,7 @@ def clear_era(era):
 def prepare_wrap_metric(metric):
     def wrap_metric(model, x, y):
         y_pred = model.predict(x)
-        return metric(y, y_pred)
+        return metric(y, y_pred, x)
 
     return wrap_metric
 

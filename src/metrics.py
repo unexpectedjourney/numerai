@@ -50,3 +50,13 @@ def adj_sharpe(x):
     x = x.dropna()
     return numerai_sharpe(x) * (1 + ((skew(x) / 6) * numerai_sharpe(x)) - ((kurtosis(x) - 3) / 24) * (numerai_sharpe(x) ** 2))
 
+
+
+def neutralized_numerai_score(y_true, y_pred, x_val, proportion=1.0):
+    # feature neutralization
+    exposures = np.hstack((x_val, np.array([np.mean(y_pred)] * len(x_val)).reshape(-1, 1)))
+    y_pred -= proportion * (exposures @ (np.linalg.pinv(exposures) @ y_pred))
+    neutralized_preds = y_pred / y_pred.std()
+
+    # numerai_score
+    return numerai_score(y_true, neutralized_preds)

@@ -33,7 +33,9 @@ class Trainer:
                                                     self.test_df,
                                                     preproc_funcs)
 
-        self.save_path = str(save_path) + '/' + model_name + '.pickle'
+        today = datetime.date.today()
+        date_str = '_' + str(today.day) + '_' + str(today.month) + '_' + str(today.year)
+        self.save_path = str(save_path) + '/' + model_name + date_str + '.pickle'
         self.submissions_path = submissions_path
         self.model_name = model_name
         self.model_params = model_params

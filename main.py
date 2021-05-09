@@ -25,6 +25,7 @@ def main(
         evaluate=False,
         submit=False,
         model_name=None,
+        save=False,
 ):
     config_path = Path("configs") / "numerai.yml"
     config = load_config(config_path)
@@ -43,6 +44,7 @@ def main(
     dir_path = Path("./data")
     train_file = dir_path / "train.csv"
     test_file = dir_path / "test.csv"
+    save_path = Path("./models")
     submissions_path = Path("./submissions")
 
     trainer = Trainer(
@@ -50,7 +52,8 @@ def main(
         test_file,
         submissions_path,
         model_name,
-        model_params
+        model_params,
+        save_path
     )
     if train:
         trainer.train()
@@ -62,6 +65,8 @@ def main(
         trainer.evaluate_for_submition()
     else:
         print("Bye!")
+    if save:
+        trainer.save_model()
 
 
 if __name__ == '__main__':

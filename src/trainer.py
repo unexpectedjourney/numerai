@@ -12,10 +12,11 @@ from src.preprocessing import (
 )
 from src.split import TimeSeriesSplitGroups
 
+import pickle
 
 class Trainer:
     def __init__(self, train_file, test_file, submissions_path, model_name,
-                 model_params):
+                 model_params, save_path=None):
         # self.train_df = pd.read_csv(train_file, nrows=10000)
         # self.test_df = pd.read_csv(test_file, nrows=10000)
         self.train_df = pd.read_csv(train_file)
@@ -32,6 +33,9 @@ class Trainer:
                                                     self.test_df,
                                                     preproc_funcs)
 
+        today = datetime.date.today()
+        date_str = '_' + str(today.day) + '_' + str(today.month) + '_' + str(today.year)
+        self.save_path = str(save_path) + '/' + model_name + date_str + '.pickle'
         self.submissions_path = submissions_path
         self.model_name = model_name
         self.model_params = model_params
@@ -79,3 +83,6 @@ class Trainer:
             self.submissions_path /
             f"{self.model_name}-{int(datetime.datetime.now().timestamp())}.csv",
             index=False)
+
+    def save_model(self):
+        pickle.dump(self.model, open(self.save_path, 'wb'))

@@ -8,7 +8,7 @@ model_params:
   learning_rate: 0.14
   max_depth: 2
   n_estimators: 980
-  tree_method: gpu_hist
+ # tree_method: gpu_hist
 
 # model_name: "lgboost"
 #model_name: "catboost"

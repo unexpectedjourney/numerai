@@ -23,18 +23,28 @@ def main(
         train=False,
         tune_params=False,
         evaluate=False,
+        submit=False,
+        model_name=None,
+        save=False,
 ):
     config_path = Path("configs") / "numerai.yml"
     config = load_config(config_path)
 
     seed = config.get("seed")
-    model_name = config.get("model_name")
     model_params = config.get("model_params")
+
+    if model_name is None:
+        model_name = config.get("model_name")
+
+    if tune_params:
+        print("Wiping model params")
+        model_params = None
 
     set_seed(seed)
     dir_path = Path("./data")
-    train_file = dir_path / "numerai_training_data.csv"
-    test_file = dir_path / "numerai_tournament_data.csv"
+    train_file = dir_path / "train.csv"
+    test_file = dir_path / "test.csv"
+    save_path = Path("./models")
     submissions_path = Path("./submissions")
 
     trainer = Trainer(
@@ -42,7 +52,8 @@ def main(
         test_file,
         submissions_path,
         model_name,
-        model_params
+        model_params,
+        save_path
     )
     if train:
         trainer.train()
@@ -50,8 +61,12 @@ def main(
         trainer.find_hyperparameters()
     elif evaluate:
         trainer.evaluate()
+    elif submit:
+        trainer.evaluate_for_submition()
     else:
         print("Bye!")
+    if save:
+        trainer.save_model()
 
 
 if __name__ == '__main__':

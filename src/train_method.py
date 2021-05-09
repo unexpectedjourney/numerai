@@ -4,10 +4,11 @@ from sklearn.base import clone
 from sklearn.model_selection import GroupKFold, StratifiedKFold
 from sklearn.preprocessing import KBinsDiscretizer
 
-from src.preprocessing import preprocessing
+from src.preprocessing import preprocessing, drop_columns
 from src.utils import (
     generate_model_name, unzip_dataframes,
     visualize_losses, zip_dataframes)
+from src.split import TimeSeriesSplitGroups
 
 
 def cross_validate(
@@ -49,8 +50,13 @@ def cross_validate(
             n_bins=50, encode='ordinal', strategy='quantile')
         stratify_on = est.fit_transform(target_values).T[0]
         splits = kfold.split(train_df, stratify_on)
+    elif isinstance(kfold, TimeSeriesSplitGroups):
+        eras = train_df.era
+        splits = kfold.split(train_df, groups=eras)
     else:
         splits = kfold.split(train_df)
+
+    train_df, test_df = drop_columns(train_df, test_df)
 
     for idx, (train_idx, val_idx) in enumerate(splits):
         tr_df = train_df.iloc[train_idx]
@@ -79,7 +85,7 @@ def cross_validate(
 
         if return_val_preds or viz_losses:
             val_preds.iloc[
-                val_df.index, val_preds.columns.get_loc('price')
+                val_df.index, val_preds.columns.get_loc(target)
             ] = preds
 
         fold_score = metric(y_val, preds, x_val)
@@ -88,8 +94,9 @@ def cross_validate(
         print(f"fold {idx+1} score: {fold_score}")
 
         if test_df is not None:
-            x_test = test_df.drop(columns=target).values
-            test_fold_preds = instance.predict(x_test)
+            if target in test_df.columns:
+                test_df = test_df.drop(target, axis=1)
+            test_fold_preds = instance.predict(test_df)
             test_preds.append(test_fold_preds)
 
     print(f"mean score: {np.mean(val_scores)}")

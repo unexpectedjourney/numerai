@@ -67,7 +67,7 @@ def plot_importance(feature_importances, features, num=20):
 
 def generate_model_name(model, model_name=None):
     if model_name is None:
-        model_name = {type(model).__name__}
+        model_name = type(model).__name__
 
     timestamp = int(datetime.datetime.now().timestamp())
     model_name = f"{model_name}_{timestamp}"
@@ -85,3 +85,28 @@ def prepare_wrap_metric(metric):
         return metric(y, y_pred, x)
 
     return wrap_metric
+
+
+def create_era_correlation(target_values, predictions, eras, corr_function):
+    df = pd.DataFrame(
+        {
+            "target": target_values,
+            "prediction": predictions,
+            "era": eras,
+        })
+
+    era_scores = pd.Series(index=df['era'].unique())
+    for era in df['era'].unique():
+        era_df = df[df['era'] == era]
+        era_scores[era] = corr_function(era_df['prediction'], era_df['target'])
+
+    era_scores.sort_values(inplace=True)
+    era_scores.sort_index(inplace=True)
+    return era_scores
+
+
+def plot_era_corr(era_scores, model, amount=50):
+    model_name = generate_model_name(model)
+    era_scores.tail(amount).plot(kind="bar")
+    plt.xticks(rotation=90)
+    plt.savefig(f"assets/era_scores/{model_name}.png")

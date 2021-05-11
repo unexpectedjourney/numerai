@@ -11,6 +11,14 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
+from joblib import load
+
+
+def load_model_from_file(path):
+    model = load(path)
+
+    return model
+
 
 def load_config(config_path):
     with open(config_path) as file:
@@ -26,6 +34,7 @@ def main(
         submit=False,
         model_name=None,
         save=False,
+        test=False,
 ):
     config_path = Path("configs") / "numerai.yml"
     config = load_config(config_path)
@@ -67,6 +76,11 @@ def main(
         print("Bye!")
     if save:
         trainer.save_model()
+    if test:
+        print('loading...')
+        trainer.load_model('models/xgboost_9_5_2021.pickle')
+        print('loaded!')
+        trainer.evaluate()
 
 
 if __name__ == '__main__':

@@ -12,7 +12,9 @@ from src.preprocessing import (
 )
 from src.split import TimeSeriesSplitGroups
 
-import pickle
+from joblib import dump
+from joblib import load
+
 
 class Trainer:
     def __init__(self, train_file, test_file, submissions_path, model_name,
@@ -47,6 +49,9 @@ class Trainer:
             numerai_sharpe,
             adj_sharpe
         ]
+
+    def load_model(self, path):
+        self.model = load(path)
 
     @staticmethod
     def get_model(model_name, model_params):
@@ -85,4 +90,4 @@ class Trainer:
             index=False)
 
     def save_model(self):
-        pickle.dump(self.model, open(self.save_path, 'wb'))
+        dump(self.model, self.save_path)

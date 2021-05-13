@@ -14,7 +14,7 @@ from src.utils import (
     prepare_wrap_metric, create_era_correlation, plot_era_corr)
 from src.metrics import spearmanr, smart_sharpe
 
-N_ITERS = 40
+N_ITERS = 20
 models = {
     "xgboost": XGBRegressor,
     "lgboost": LGBMRegressor,
@@ -71,9 +71,7 @@ class BaseModel:
             plot_era_corr(era_scores, self.model)
 
         for era_metric in era_metrics:
-            print(
-                f"{era_metric.__name__}: {era_metric(era_scores)}")
-
+            print(f"{era_metric.__name__}: {era_metric(era_scores)}")
 
         return self
 
@@ -86,12 +84,13 @@ class BaseModel:
             test_df=test_df,
             copy_model=True
         )
-        predictions = stats.mode(np.array(predictions))[0][0]
+        predictions = np.mean(np.array(predictions), axis=0)
 
         return predictions
 
     def predict_and_score(self, train_df, kfolds, test_df, target, metric,
-                          additional_metrics=None, era_metrics=None, plot_eras=True):
+                          additional_metrics=None, era_metrics=None,
+                          plot_eras=False):
         if additional_metrics is None:
             additional_metrics = []
 
@@ -110,12 +109,11 @@ class BaseModel:
             test_df=test_df,
             copy_model=True
         )
-        predictions = stats.mode(np.array(predictions))[0][0]
+        predictions = np.mean(np.array(predictions), axis=0)
 
         print(f"{metric.__name__}: {metric(y_data, predictions)}")
         for additional_metric in additional_metrics:
-            print(
-                f"{additional_metric.__name__}: {additional_metric(y_data, predictions)}")
+            print(f"{additional_metric.__name__}: {additional_metric(y_data, predictions)}")
 
         era_scores = create_era_correlation(
             test_df.target.tolist(),
@@ -156,7 +154,7 @@ class BoostingMixing:
             # )
             # score = smart_sharpe(era_scores)
             # return -score
-            return -1 * val_score
+            return -val_scores
 
         result = fmin(
             fn=try_hyperparameters,
@@ -188,6 +186,7 @@ class XGBoostModel(BaseModel, BoostingMixing):
         return {
             'gpu_id': 0,
             'tree_method': 'gpu_hist',
+            'booster': hp.choice('booster', ('gbtree', 'gblinear', 'dart')),
             'max_depth': hp.choice('max_depth', range(2, 20, 1)),
             'learning_rate': hp.quniform('learning_rate', 0.001, 0.5, 0.01),
             'n_estimators': hp.choice('n_estimators', range(100, 1000, 5)),

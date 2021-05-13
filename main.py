@@ -40,6 +40,7 @@ def main(
     config = load_config(config_path)
 
     seed = config.get("seed")
+    plot_eras = config.get("plot_eras")
     model_params = config.get("model_params")
 
     if model_name is None:
@@ -62,7 +63,8 @@ def main(
         submissions_path,
         model_name,
         model_params,
-        save_path
+        save_path,
+        plot_eras
     )
     if train:
         trainer.train()

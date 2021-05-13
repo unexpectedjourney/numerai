@@ -1,16 +1,29 @@
 seed: 42
-model_name: "xgboost"
-model_params:
-  alpha: 50.40580029434661
-  gamma: 0.11
-  gpu_id: 0
-  lambda: 8.242035791320554
-  learning_rate: 0.14
-  max_depth: 2
-  n_estimators: 980
- # tree_method: gpu_hist
+plot_eras: true
+# model_name: "xgboost"
+# model_params:
+#   alpha: 12.40149077676806
+#   gamma: 0.11
+#   gpu_id: 0
+#   lambda: 5.817229902870571
+#   learning_rate: 0.03
+#   max_depth: 12
+#   n_estimators: 455
+#   tree_method: gpu_hist
 
-# model_name: "lgboost"
+model_name: "lgboost"
+model_params:
+  boosting_type: gbdt
+  device: gpu
+  feature_fraction: 0.3016869799570058
+  lambda_l1: 0.536011488082313
+  lambda_l2: 0.12764536209920513
+  learning_rate: 0.01
+  max_depth: 31
+  n_estimators: 2975
+  num_leaves: 75
+  subsample: 0.5239577045342949
+
 #model_name: "catboost"
 #model_name: "lr"
 #model_name: "e_net"

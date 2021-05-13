@@ -9,7 +9,6 @@ def preprocessing(train_df, test_df, funcs):
     return train_df, test_df
 
 
-
 def get_validation_data(train_df, test_df):
     test_df = test_df[test_df.data_type == "validation"]
     return train_df, test_df

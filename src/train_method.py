@@ -56,7 +56,7 @@ def cross_validate(
     else:
         splits = kfold.split(train_df)
 
-    train_df, test_df = drop_columns(train_df, test_df)
+    test_df, _ = drop_columns(test_df)
 
     for idx, (train_idx, val_idx) in enumerate(splits):
         tr_df = train_df.iloc[train_idx]
@@ -68,6 +68,9 @@ def cross_validate(
             (val_df, test_df) = unzip_dataframes(zip_df)
         if preproc_funcs and test_df is None:
             (tr_df, val_df) = preprocessing(tr_df, val_df, preproc_funcs)
+
+        val_eras = val_df.era.tolist()
+        tr_df, val_df = drop_columns(tr_df, val_df)
 
         x_train = tr_df.drop(columns=target).values
         y_train = tr_df[target].values
@@ -88,7 +91,7 @@ def cross_validate(
                 val_df.index, val_preds.columns.get_loc(target)
             ] = preds
 
-        fold_score = metric(y_val, preds, x_val)
+        fold_score = metric(y_val, preds, x_val, eras=val_eras)
         val_scores.append(fold_score)
 
         print(f"fold {idx+1} score: {fold_score}")

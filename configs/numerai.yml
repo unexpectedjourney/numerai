@@ -2,27 +2,48 @@ seed: 42
 plot_eras: true
 # model_name: "xgboost"
 # model_params:
-#   alpha: 12.40149077676806
-#   gamma: 0.11
+# #  alpha: 12.40149077676806
+# #  gamma: 0.11
+# #  gpu_id: 0
+# #  lambda: 5.817229902870571
+# #  learning_rate: 0.03
+# #  max_depth: 12
+# #  n_estimators: 455
+# #  tree_method: gpu_hist
+#   alpha: 10.027566475335892
+#   booster: gbtree
+#   gamma: 0.26
 #   gpu_id: 0
-#   lambda: 5.817229902870571
-#   learning_rate: 0.03
-#   max_depth: 12
-#   n_estimators: 455
+#   lambda: 6.794967764902014
+#   learning_rate: 0.04
+#   max_depth: 14
+#   n_estimators: 1425
 #   tree_method: gpu_hist
 
 model_name: "lgboost"
 model_params:
+ # boosting_type: gbdt
+ # device: gpu
+ # feature_fraction: 0.3016869799570058
+ # lambda_l1: 0.536011488082313
+ # lambda_l2: 0.12764536209920513
+ # learning_rate: 0.01
+ # max_depth: 31
+ # n_estimators: 2975
+ # num_leaves: 75
+ # subsample: 0.5239577045342949
+
   boosting_type: gbdt
   device: gpu
-  feature_fraction: 0.3016869799570058
-  lambda_l1: 0.536011488082313
-  lambda_l2: 0.12764536209920513
-  learning_rate: 0.01
-  max_depth: 31
-  n_estimators: 2975
+  feature_fraction: 0.4351934362196178
+  lambda_l1: 7.048225840169197
+  lambda_l2: 0.2184025524555363
+  learning_rate: 0.015
+  max_depth: 33
+  n_estimators: 3450
   num_leaves: 75
-  subsample: 0.5239577045342949
+  subsample: 0.6044483735086836
+
 
 #model_name: "catboost"
 #model_name: "lr"

@@ -11,6 +11,7 @@ from src.metrics import (
     smart_sharpe,
     numerai_sharpe,
     adj_sharpe,
+    numerai_score_and_sharpe,
 )
 from src.model import XGBoostModel, full_models
 from src.preprocessing import (
@@ -69,7 +70,8 @@ class Trainer:
         self.model.train(
             self.train_df,
             self.kfold,
-            neutralized_numerai_score,
+            # neutralized_numerai_score,
+            numerai_score_and_sharpe,
             era_metrics=self.era_metrics,
             plot_eras=self.plot_eras,
         )
@@ -78,7 +80,8 @@ class Trainer:
         self.model.find_hyperparameters(
             self.train_df,
             self.kfold,
-            neutralized_numerai_score,
+            # neutralized_numerai_score,
+            numerai_score_and_sharpe,
             target="target",
         )
 
@@ -104,7 +107,8 @@ class Trainer:
             self.kfold,
             self.test_df,
             "target",
-            neutralized_numerai_score,
+            # neutralized_numerai_score,
+            numerai_score_and_sharpe,
         )
         self.submission_df["prediction"] = predictions
         self.submission_df[["id", "prediction"]].to_csv(

@@ -5,6 +5,11 @@ The main __metrics__:
 1) Spearman correlation;
 2) Sharpe ration and its local modifications.
 
+## Authors
+- Arsenii Petryk
+- Anton Babenko
+- Volodymyr Prypeshniuk
+
 ## Configurations
 To choose proper model or/and its hyperparams, please define them in `config/numeria.yml` file.
 

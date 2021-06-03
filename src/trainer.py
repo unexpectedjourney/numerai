@@ -2,9 +2,17 @@ import datetime
 
 import pandas as pd
 from sklearn.model_selection import TimeSeriesSplit
+from joblib import dump, load
 
 from src.metrics import (
-    numerai_score, autocorr_penalty, smart_sharpe, numerai_sharpe, adj_sharpe)
+    numerai_score,
+    neutralized_numerai_score,
+    autocorr_penalty,
+    smart_sharpe,
+    numerai_sharpe,
+    adj_sharpe,
+    numerai_score_and_sharpe,
+)
 from src.model import XGBoostModel, full_models
 from src.preprocessing import (
     preprocessing,
@@ -12,13 +20,10 @@ from src.preprocessing import (
 )
 from src.split import TimeSeriesSplitGroups
 
-from joblib import dump
-from joblib import load
-
 
 class Trainer:
     def __init__(self, train_file, test_file, submissions_path, model_name,
-                 model_params, save_path=None):
+                 model_params, save_path=None, plot_eras=False):
         # self.train_df = pd.read_csv(train_file, nrows=10000)
         # self.test_df = pd.read_csv(test_file, nrows=10000)
         self.train_df = pd.read_csv(train_file)
@@ -31,9 +36,11 @@ class Trainer:
 
         # self.kfold = TimeSeriesSplit(n_splits=5)
         self.kfold = TimeSeriesSplitGroups(n_splits=5)
-        self.train_df, self.test_df = preprocessing(self.train_df,
-                                                    self.test_df,
-                                                    preproc_funcs)
+        self.train_df, self.test_df = preprocessing(
+            self.train_df,
+            self.test_df,
+            preproc_funcs,
+        )
 
         today = datetime.date.today()
         date_str = '_' + str(today.day) + '_' + str(today.month) + '_' + str(today.year)
@@ -49,6 +56,7 @@ class Trainer:
             numerai_sharpe,
             adj_sharpe
         ]
+        self.plot_eras = plot_eras
 
     def load_model(self, path):
         self.model = load(path)
@@ -59,21 +67,34 @@ class Trainer:
         return full_models.get(model_name)(model_name, model_params)
 
     def train(self):
-        self.model.train(self.train_df, self.kfold, numerai_score, era_metrics=self.era_metrics)
+        self.model.train(
+            self.train_df,
+            self.kfold,
+            # neutralized_numerai_score,
+            numerai_score_and_sharpe,
+            era_metrics=self.era_metrics,
+            plot_eras=self.plot_eras,
+        )
 
     def find_hyperparameters(self):
         self.model.find_hyperparameters(
             self.train_df,
             self.kfold,
-            numerai_score,
+            # neutralized_numerai_score,
+            numerai_score_and_sharpe,
             target="target",
         )
 
     def evaluate(self):
-        predictions = self.model.predict_and_score(self.train_df, self.kfold,
-                                                   self.test_df, "target",
-                                                   numerai_score,
-                                                   era_metrics=self.era_metrics)
+        predictions = self.model.predict_and_score(
+            self.train_df,
+            self.kfold,
+            self.test_df,
+            "target",
+            neutralized_numerai_score,
+            era_metrics=self.era_metrics,
+            plot_eras=self.plot_eras,
+        )
         self.submission_df["prediction"] = predictions
         self.submission_df[["id", "prediction"]].to_csv(
             self.submissions_path /
@@ -81,8 +102,14 @@ class Trainer:
             index=False)
 
     def evaluate_for_submition(self):
-        predictions = self.model.predict(self.train_df, self.kfold,
-                                         self.test_df, "target", numerai_score)
+        predictions = self.model.predict(
+            self.train_df,
+            self.kfold,
+            self.test_df,
+            "target",
+            # neutralized_numerai_score,
+            numerai_score_and_sharpe,
+        )
         self.submission_df["prediction"] = predictions
         self.submission_df[["id", "prediction"]].to_csv(
             self.submissions_path /

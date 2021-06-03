@@ -107,6 +107,7 @@ def create_era_correlation(target_values, predictions, eras, corr_function):
 
 def plot_era_corr(era_scores, model, amount=50):
     model_name = generate_model_name(model)
+    print(era_scores.head())
     era_scores.tail(amount).plot(kind="bar")
     plt.xticks(rotation=90)
     plt.savefig(f"assets/era_scores/{model_name}.png")
